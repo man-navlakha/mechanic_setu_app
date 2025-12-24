@@ -145,7 +145,6 @@ const DashboardScreen = ({ navigation }) => {
     const getStatusIcon = (type) => type === 'car' ? 'car-sport' : 'motorbike';
 
     const mapStyle = [
-        // ... same style ...
         { "elementType": "geometry", "stylers": [{ "color": "#f5f7fa" }] },
         { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
         { "elementType": "labels.text.fill", "stylers": [{ "color": "#4a5568" }] },

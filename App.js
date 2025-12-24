@@ -49,10 +49,7 @@ const Navigation = () => {
                     </>
                 ) : (
                     <>
-                        {/* MainTabs now handles the Dashboard, History, and Profile tabs */}
                         <Stack.Screen name="Main" component={DashboardScreen} />
-                        {/* We keep Profile here if we want to push it on top of tabs, but currently it's a tab */}
-                        {/* If you want Profile as a standalone screen on top of tabs: */}
                         <Stack.Screen name="Profile" component={ProfileScreen} />
                         <Stack.Screen name="History" component={HistoryScreen} />
                         <Stack.Screen name="ServiceRequest" component={ServiceRequestScreen} />
