@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,14 @@ const OTPScreen = () => {
     const [loading, setLoading] = useState(false);
     const [timer, setTimer] = useState(60);
     const [canResend, setCanResend] = useState(false);
-
+    const otpInputRef = useRef(null);
+    useEffect(() => {
+        // Small delay to ensure the screen is fully mounted before opening keyboard
+        const timer = setTimeout(() => {
+            otpInputRef.current?.focus();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, []);
     // Timer Logic
     useEffect(() => {
         let interval;
@@ -44,6 +51,7 @@ const OTPScreen = () => {
             // Adjust URL based on your specific backend route for verification
             // Common pattern: /users/verify_otp/ or similar. 
             // Based on your web app logic, we send the key and otp.
+
             const response = await api.post('/users/otp-verify/', {
                 id: id,
                 otp: otp,
@@ -67,6 +75,8 @@ const OTPScreen = () => {
             console.error("OTPScreen: Verification error", error);
             const errorMsg = error.response?.data?.error || "Verification failed.";
             Alert.alert("Error", errorMsg);
+            setOtp(''); // Clear OTP so they can rewrite from scratch
+            otpInputRef.current?.focus(); // Refocus the input
         } finally {
             setLoading(false);
         }
@@ -121,7 +131,11 @@ const OTPScreen = () => {
                     <View className="flex-1 px-6 pt-10 items-center">
 
                         {/* OTP Inputs */}
-                        <View className="relative flex-row justify-between w-full mb-8 px-2">
+                        <TouchableOpacity
+                            activeOpacity={1}
+                            onPress={() => otpInputRef.current?.focus()} // Force focus when tapping anywhere in the area
+                            className="relative flex-row justify-between w-full mb-8 px-2"
+                        >
                             {/* Display Boxes */}
                             {Array(6).fill().map((_, i) => (
                                 <View
@@ -139,15 +153,28 @@ const OTPScreen = () => {
 
                             {/* Hidden Input Layer */}
                             <TextInput
+                                ref={otpInputRef} // Attach the ref
                                 value={otp}
-                                onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
+                                onChangeText={(text) => {
+                                    const cleaned = text.replace(/[^0-9]/g, '');
+                                    if (cleaned.length <= 6) {
+                                        setOtp(cleaned); // Allow rewriting/updating state
+                                    }
+                                }}
                                 maxLength={6}
                                 keyboardType="number-pad"
                                 caretHidden={true}
-                                className="absolute inset-0 w-full h-full opacity-0"
+                                selectionColor="transparent" // Hide the selection highlight
+                                style={{
+                                    position: 'absolute',
+                                    width: '100%',
+                                    height: '100%',
+                                    opacity: 0, // Keep it invisible but functional
+                                    fontSize: 1, // Minimize visual impact on some devices
+                                }}
                                 autoFocus={true}
                             />
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Resend Timer */}
                         <View className="mb-10">

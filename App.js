@@ -5,7 +5,7 @@ import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-rean
 import './global.css';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { WebSocketProvider } from './src/context/WebSocketContext';
-
+import { navigationRef } from './src/utils/navigationRef';
 // Configure Reanimated to suppress strict mode warnings
 configureReanimatedLogger({
     level: ReanimatedLogLevel.warn,
@@ -39,7 +39,8 @@ const Navigation = () => {
     }
 
     return (
-        <NavigationContainer>
+        /* Attach the ref here */
+        <NavigationContainer ref={navigationRef}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {!isAuthenticated ? (
                     <>

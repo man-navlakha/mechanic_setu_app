@@ -7,6 +7,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    FlatList,
     Image,
     Linking,
     Modal,
@@ -16,9 +17,10 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming, ZoomIn } from 'react-native-reanimated';
 import { useWebSocket } from '../context/WebSocketContext';
 import api from '../utils/api';
+import { resetRoot } from '../utils/navigationRef';
 
 const { width, height } = Dimensions.get('window');
 
@@ -76,6 +78,8 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
     const [isCancelModalOpen, setCancelModalOpen] = useState(false);
     const [selectedReason, setSelectedReason] = useState('');
+    const [isJobCompleted, setIsJobCompleted] = useState(false);
+    const [isJobCancelledState, setIsJobCancelledState] = useState(false);
 
     const mapRef = useRef(null);
 
@@ -110,64 +114,64 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
     // Initial Load
     useEffect(() => {
-    const loadInitialData = async () => {
-        // --- 1. Load Mechanic & Request Info ---
-        if (routeData) {
-            const mech = routeData.mechanic_details;
-            const reqId = routeData.job_id || routeData.request_id;
+        const loadInitialData = async () => {
+            // --- 1. Load Mechanic & Request Info ---
+            if (routeData) {
+                const mech = routeData.mechanic_details;
+                const reqId = routeData.job_id || routeData.request_id;
 
-            setMechanic(mech);
-            setRequestId(reqId);
-            
-            if (mech.current_latitude) {
-                setMechanicLocation({
-                    latitude: parseFloat(mech.current_latitude),
-                    longitude: parseFloat(mech.current_longitude)
-                });
-            }
-            if (paramLocation) setUserLocation(paramLocation);
+                setMechanic(mech);
+                setRequestId(reqId);
 
-            // Save for persistence
-            const dataToSave = {
-                mechanic: mech,
-                request_id: reqId,
-                user_location: paramLocation
-            };
-            await SecureStore.setItemAsync(ACTIVE_JOB_STORAGE_KEY, JSON.stringify(dataToSave));
-        } else {
-            const saved = await SecureStore.getItemAsync(ACTIVE_JOB_STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                setMechanic(parsed.mechanic);
-                setRequestId(parsed.request_id);
-                setUserLocation(parsed.user_location);
-            }
-        }
-
-        // --- 2. Load Job Details (Problem/Vehicle) ---
-        // REMOVED the "if (!paramLocation)" check so it always runs
-        try {
-            const savedForm = await SecureStore.getItemAsync(FORM_STORAGE_KEY);
-            console.log("Fetched Form Data:", savedForm); // DEBUG LOG
-            if (savedForm) {
-                const parsedForm = JSON.parse(savedForm);
-                setJobDetails(parsedForm);
-                
-                // Fallback location if userLocation is still null
-                if (!userLocation && parsedForm.latitude) {
-                    setUserLocation({
-                        latitude: parsedForm.latitude,
-                        longitude: parsedForm.longitude
+                if (mech.current_latitude) {
+                    setMechanicLocation({
+                        latitude: parseFloat(mech.current_latitude),
+                        longitude: parseFloat(mech.current_longitude)
                     });
                 }
-            }
-        } catch (e) {
-            console.error("Failed to load form data", e);
-        }
-    };
+                if (paramLocation) setUserLocation(paramLocation);
 
-    loadInitialData();
-}, [routeData]);
+                // Save for persistence
+                const dataToSave = {
+                    mechanic: mech,
+                    request_id: reqId,
+                    user_location: paramLocation
+                };
+                await SecureStore.setItemAsync(ACTIVE_JOB_STORAGE_KEY, JSON.stringify(dataToSave));
+            } else {
+                const saved = await SecureStore.getItemAsync(ACTIVE_JOB_STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setMechanic(parsed.mechanic);
+                    setRequestId(parsed.request_id);
+                    setUserLocation(parsed.user_location);
+                }
+            }
+
+            // --- 2. Load Job Details (Problem/Vehicle) ---
+            // REMOVED the "if (!paramLocation)" check so it always runs
+            try {
+                const savedForm = await SecureStore.getItemAsync(FORM_STORAGE_KEY);
+                console.log("Fetched Form Data:", savedForm); // DEBUG LOG
+                if (savedForm) {
+                    const parsedForm = JSON.parse(savedForm);
+                    setJobDetails(parsedForm);
+
+                    // Fallback location if userLocation is still null
+                    if (!userLocation && parsedForm.latitude) {
+                        setUserLocation({
+                            latitude: parsedForm.latitude,
+                            longitude: parsedForm.longitude
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load form data", e);
+            }
+        };
+
+        loadInitialData();
+    }, [routeData]);
 
     // WebSocket Updates (kept same)
     useEffect(() => {
@@ -180,25 +184,44 @@ const MechanicFoundScreen = ({ navigation, route }) => {
                 longitude: lastMessage.longitude
             });
         }
-    const msgReqId = String(lastMessage.request_id || lastMessage.job_id);
-    const currentReqId = String(requestId);
+        const msgReqId = String(lastMessage.request_id || lastMessage.job_id);
+        const currentReqId = String(requestId);
 
-    if (msgReqId === currentReqId) {
-        switch (lastMessage.type) {
-            case 'job_completed':
-                clearAndExit("The service has been completed.");
-                break;
-            case 'job_cancelled':
-            case 'job_cancelled_notification':
-                // This will catch the event after your API call
-                clearAndExit("The request has been cancelled.");
-                break;
-            case 'no_mechanic_found':
-                clearAndExit("We could not find a mechanic.");
-                break;
+        if (msgReqId === currentReqId) {
+            switch (lastMessage.type) {
+                case 'job_completed':
+                    // Show success screen instead of alert
+                    setIsJobCompleted(true);
+
+                    // Cleanup storage
+                    SecureStore.deleteItemAsync(ACTIVE_JOB_STORAGE_KEY);
+                    SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
+
+                    // Navigate home after delay
+                    setTimeout(() => {
+                        resetRoot('Main');
+                    }, 4000);
+                    break;
+                case 'job_cancelled':
+                case 'job_cancelled_notification':
+                    // Show cancellation screen
+                    setIsJobCancelledState(true);
+
+                    // Cleanup storage
+                    SecureStore.deleteItemAsync(ACTIVE_JOB_STORAGE_KEY);
+                    SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
+
+                    // Navigate home after delay
+                    setTimeout(() => {
+                        resetRoot('Main');
+                    }, 4000);
+                    break;
+                case 'no_mechanic_found':
+                    clearAndExit("We could not find a mechanic.");
+                    break;
+            }
         }
-    }
-}, [lastMessage, requestId]);
+    }, [lastMessage, requestId]);
 
     // Calculate ETA (kept same)
     useEffect(() => {
@@ -218,26 +241,28 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
 
     const clearAndExit = async (msg = null) => {
-    try {
-        if (msg) Alert.alert("Notice", msg);
-        
-        // Cleanup storage first
-        await SecureStore.deleteItemAsync(ACTIVE_JOB_STORAGE_KEY);
-        await SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
+        try {
+            // 1. Cleanup storage immediately
+            await SecureStore.deleteItemAsync(ACTIVE_JOB_STORAGE_KEY);
+            await SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
 
-        // Use a small delay to ensure Modals/Alerts are dismissed
-        setTimeout(() => {
-            if (navigation && navigation.canGoBack?.() !== undefined) {
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Main' }],
-                });
+            // 2. Show alert if message provided
+            if (msg) {
+                Alert.alert("Notice", msg, [
+                    {
+                        text: "OK",
+                        onPress: () => resetRoot('Main') // Safe global reset
+                    }
+                ]);
+            } else {
+                resetRoot('Main');
             }
-        }, 100);
-    } catch (err) {
-        console.error("Exit Error:", err);
-    }
-};
+        } catch (err) {
+            console.error("Exit Error:", err);
+            // Fallback: Try to navigate anyway
+            resetRoot('Main');
+        }
+    };
 
     const handleCallMechanic = () => {
         if (mechanic?.phone_number) {
@@ -253,39 +278,126 @@ const MechanicFoundScreen = ({ navigation, route }) => {
     }, []);
 
     const handleCancelConfirm = async () => {
-    if (!selectedReason || !requestId) return;
+        if (!selectedReason || !requestId) return;
 
-    try {
-        // 1. Notify the Backend
-        await api.post(`jobs/CancelServiceRequest/${requestId}/`, {
-            cancellation_reason: `User - ${selectedReason}`,
-        });
+        try {
+            // 1. Notify the Backend
+            await api.post(`jobs/CancelServiceRequest/${requestId}/`, {
+                cancellation_reason: `User - ${selectedReason}`,
+            });
 
-        // 2. Notify via WebSocket
-        if (socket?.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ 
-                type: 'cancel_request', 
-                request_id: parseInt(requestId) 
-            }));
+            // 2. Notify via WebSocket
+            if (socket?.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'cancel_request',
+                    request_id: parseInt(requestId)
+                }));
+            }
+
+            // 3. Close modal
+            setCancelModalOpen(false);
+
+            // 4. IMPORTANT: Do NOT navigate here. 
+            // The WebSocket useEffect below will see the 'job_cancelled' 
+            // message and call clearAndExit() for you.
+        } catch (error) {
+            console.error("Cancellation Error:", error);
+            Alert.alert("Error", "Failed to cancel request.");
+            setCancelModalOpen(false);
         }
+    };
 
-        // 3. Close modal
-        setCancelModalOpen(false);
+    // --- ADS DATA & RENDERER ---
+    const RECOMMENDED_ADS = [
+        {
+            id: '1',
+            title: 'Castrol Magnatec',
+            subtitle: '20% Off Engine Oil',
+            description: 'Ensure a smooth ride with premium oil change.',
+            icon: 'water',
+            color: '#16a34a',
+            price: 'From ₹499'
+        },
+        {
+            id: '2',
+            title: 'RSA Shield',
+            subtitle: 'Roadside Assistance',
+            description: 'Get 24/7 breakdown support for a year.',
+            icon: 'shield-checkmark',
+            color: '#2563eb',
+            price: '₹99/year'
+        },
+        {
+            id: '3',
+            title: 'Pixel Class',
+            subtitle: 'now Submit Assignment on time ',
+            description: 'Comprehensive car service at your doorstep.',
+            icon: 'book',
+            color: '#dc2626',
+            price: 'Download Now'
+        },
+        {
+            id: '4',
+            title: 'GoMechanic',
+            subtitle: 'Full Service',
+            description: 'Comprehensive car service at your doorstep.',
+            icon: 'construct',
+            color: '#740000ff',
+            price: 'Save Time & Wallet'
+        },
+        {
+            id: '5',
+            title: 'GoMechanic',
+            subtitle: 'Full Service',
+            description: 'Comprehensive car service at your doorstep.',
+            icon: 'construct',
+            color: '#dc2626',
+            price: 'Save ₹1000'
+        },
+    ];
 
-        // 4. IMPORTANT: Do NOT navigate here. 
-        // The WebSocket useEffect below will see the 'job_cancelled' 
-        // message and call clearAndExit() for you.
-        
-    } catch (error) {
-        console.error("Cancellation Error:", error);
-        Alert.alert("Error", "Failed to cancel request.");
-        setCancelModalOpen(false);
-    }
-};
-    
+    const renderAdItem = ({ item }) => (
+        <TouchableOpacity
+            className="bg-white rounded-2xl shadow-md border-2 border-gray-300/30 overflow-hidden mr-4 relative"
+            style={{ width: width * 0.8 }}
+        >
+            {/* Ads Tab */}
+            <View className="absolute top-0 left-0 bg-gray-400/30 px-3 py-1 rounded-br-lg">
+                <Text className="text-gray-400 font-bold text-xs">Ads</Text>
+            </View>
+
+            {/* Top Icon Section */}
+            <View className="flex-row items-center p-4 mt-4">
+                <View
+                    className="p-3 rounded-xl mr-3"
+                    style={{ backgroundColor: item.color + '20' }}
+                >
+                    <Ionicons name={item.icon} size={28} color={item.color} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-gray-900 font-bold text-base" numberOfLines={1}>
+                        {item.title}
+                    </Text>
+                    <Text className="text-gray-500 text-sm" numberOfLines={1}>
+                        {item.subtitle}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Divider */}
+            <View className="border-t border-gray-100" />
+
+            {/* Bottom Price + Action */}
+            <View className="flex-row items-center justify-between p-4">
+                <Text className="text-blue-600 font-bold text-sm">{item.price}</Text>
+                <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+            </View>
+        </TouchableOpacity>
+    );
+
     console.log("Current State -> Mechanic:", !!mechanic, "JobDetails:", jobDetails);
 
- const mapStyle = [
+    const mapStyle = [
         { "elementType": "geometry", "stylers": [{ "color": "#f5f7fa" }] },
         { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
         { "elementType": "labels.text.fill", "stylers": [{ "color": "#4a5568" }] },
@@ -321,8 +433,94 @@ const MechanicFoundScreen = ({ navigation, route }) => {
         );
     }
 
+    // Success View for Completion
+    const renderCompletionSuccess = () => (
+        <Animated.View
+            entering={FadeIn}
+            className="absolute top-0 left-0 right-0 bottom-0 bg-white z-50 items-center justify-center px-6"
+        >
+            <Animated.View
+                entering={ZoomIn.delay(200)}
+                className="w-32 h-32 bg-green-600 rounded-full items-center justify-center mb-8 shadow-xl shadow-green-200"
+            >
+                <Ionicons name="checkmark" size={64} color="white" />
+            </Animated.View>
+
+            <Animated.Text
+                entering={FadeIn.delay(400)}
+                className="text-2xl font-black text-gray-900 mb-2 tracking-wider uppercase text-center"
+            >
+                Service Completed
+            </Animated.Text>
+
+            <Animated.Text
+                entering={FadeIn.delay(600)}
+                className="text-gray-500 font-medium text-center mb-8 text-base"
+            >
+                Hope you are safe now. Thank you for using Mechanic Setu!
+            </Animated.Text>
+
+            {mechanic && (
+                <Animated.View
+                    entering={FadeIn.delay(800)}
+                    className="bg-gray-50 p-4 rounded-2xl w-full items-center border border-gray-100 mb-8"
+                >
+                    <Text className="text-xs font-bold text-gray-400 uppercase mb-2">Service Provided By</Text>
+                    <Text className="text-gray-900 font-bold text-lg text-center leading-6">
+                        {mechanic.first_name} {mechanic.last_name}
+                    </Text>
+                </Animated.View>
+            )}
+
+            <Animated.Text
+                entering={FadeIn.delay(1000)}
+                className="text-gray-400 font-bold uppercase tracking-widest text-xs"
+            >
+                Redirecting to Home...
+            </Animated.Text>
+        </Animated.View>
+    );
+
+    // Cancellation View
+    const renderCancellationSuccess = () => (
+        <Animated.View
+            entering={FadeIn}
+            className="absolute top-0 left-0 right-0 bottom-0 bg-white z-50 items-center justify-center px-6"
+        >
+            <Animated.View
+                entering={ZoomIn.delay(200)}
+                className="w-32 h-32 bg-red-100 rounded-full items-center justify-center mb-8"
+            >
+                <Ionicons name="close" size={64} color="#dc2626" />
+            </Animated.View>
+
+            <Animated.Text
+                entering={FadeIn.delay(400)}
+                className="text-2xl font-black text-gray-900 mb-2 tracking-wider uppercase text-center"
+            >
+                Request Cancelled
+            </Animated.Text>
+
+            <Animated.Text
+                entering={FadeIn.delay(600)}
+                className="text-gray-500 font-medium text-center mb-8 text-base"
+            >
+                Your service request has been cancelled.
+            </Animated.Text>
+
+            <Animated.Text
+                entering={FadeIn.delay(800)}
+                className="text-gray-400 font-bold uppercase tracking-widest text-xs"
+            >
+                Redirecting to Home...
+            </Animated.Text>
+        </Animated.View>
+    );
+
     return (
         <View style={{ flex: 1 }}>
+            {isJobCompleted && renderCompletionSuccess()}
+            {isJobCancelledState && renderCancellationSuccess()}
             <View className="flex-1 bg-white">
                 {/* Map */}
                 <MapView
@@ -392,7 +590,7 @@ const MechanicFoundScreen = ({ navigation, route }) => {
                 </SafeAreaView>
 
                 {/* Draggable Bottom Sheet */}
-<GestureDetector gesture={gesture}>
+                <GestureDetector gesture={gesture}>
                     <Animated.View style={[{ position: 'absolute', left: 0, right: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, elevation: 10, paddingTop: 10 }, rBottomSheetStyle]}>
                         <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-6" />
                         <View className="px-6 pb-10">
@@ -415,14 +613,19 @@ const MechanicFoundScreen = ({ navigation, route }) => {
                                 {jobDetails?.vehicleType && <Text className="text-blue-600 font-medium mt-1 capitalize">{jobDetails.vehicleType}</Text>}
                             </View>
 
-                            {/* Sponsored Ad */}
-                            <View className="bg-purple-50 border border-purple-100 p-4 rounded-2xl flex-row items-center mb-6">
-                                <Ionicons name="book" size={24} color="#9333ea" />
-                                <View className="flex-1 ml-3">
-                                    <Text className="font-bold text-gray-800">Pixel Class</Text>
-                                    <Text className="text-xs text-gray-500">Download latest books now!</Text>
-                                </View>
-                                <TouchableOpacity onPress={() => Linking.openURL('https://pixelclass.netlify.app')} className="bg-purple-600 px-3 py-1.5 rounded-lg"><Text className="text-xs text-white font-bold">Download</Text></TouchableOpacity>
+                            {/* ADS CAROUSEL (Uber-style) */}
+                            <View className="mb-8">
+                                <Text className="mr-6 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Recommended for you</Text>
+                                <FlatList
+                                    data={RECOMMENDED_ADS}
+                                    renderItem={renderAdItem}
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    snapToInterval={width * 0.8}
+                                    decelerationRate="fast"
+                                    // Removed negative margin or padding logic from FindingMechanicScreen to keep it simple here
+                                    keyExtractor={(item) => item.id}
+                                />
                             </View>
 
                             <TouchableOpacity onPress={() => setCancelModalOpen(true)} className="w-full py-4 rounded-xl bg-red-50 flex-row items-center justify-center border border-red-100"><Text className="text-red-500 font-bold">Cancel Request</Text></TouchableOpacity>

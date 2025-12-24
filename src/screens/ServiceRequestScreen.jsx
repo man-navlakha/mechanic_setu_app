@@ -1,4 +1,4 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 // FIX 1: Explicitly import Marker here
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInRight, SlideOutLeft, ZoomIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../utils/api';
 
@@ -26,7 +26,7 @@ const { width, height } = Dimensions.get('window');
 // --- CONSTANTS ---
 const VEHICLE_TYPES = [
     { id: 'bike', name: 'Bike / Scooter', icon: 'motorbike', library: MaterialCommunityIcons },
-    { id: 'car', name: 'Car / Sedan', icon: 'car-sedan', library: MaterialCommunityIcons },
+    { id: 'car', name: 'Car / Sedan', icon: 'car-side', library: MaterialCommunityIcons },
     { id: 'truck', name: 'Truck / SUV', icon: 'truck', library: MaterialCommunityIcons }
 ];
 
@@ -68,6 +68,8 @@ export default function ServiceRequestScreen() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [showDebugger, setShowDebugger] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [lastResponse, setLastResponse] = useState(null);
 
     const mapRef = useRef(null);
     const [formData, setFormData] = useState({
@@ -137,19 +139,27 @@ export default function ServiceRequestScreen() {
             // Clear draft
             await SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
 
-            // Navigate to finding/tracking screen
-            navigation.navigate("FindingMechanic", {
-                requestId: response.data.request_id,
-                latitude: formData.latitude,
-                longitude: formData.longitude,
-                vehicleType: formData.vehicleType,
-                problem: formData.problem
-            });
+            // Show success screen
+            setLastResponse(response.data);
+            setLoading(false);
+            setShowSuccess(true);
+
+            // Delay navigation to FindingMechanic
+            setTimeout(() => {
+                navigation.navigate("FindingMechanic", {
+                    requestId: response.data.request_id,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude,
+                    vehicleType: formData.vehicleType,
+                    problem: formData.problem
+                });
+                // Reset state after navigation (optional, but good practice if user comes back)
+                setTimeout(() => setShowSuccess(false), 500);
+            }, 2500);
 
         } catch (error) {
             console.error("Submission error:", error);
             alert("Failed to submit request. Please try again.");
-        } finally {
             setLoading(false);
         }
     };
@@ -266,7 +276,7 @@ export default function ServiceRequestScreen() {
                 ref={mapRef}
                 provider={PROVIDER_GOOGLE}
                 style={{ flex: 1 }}
-                region={mapRegion} 
+                region={mapRegion}
                 onRegionChangeComplete={async (region) => {
                     // Update region state to keep UI in sync
                     setMapRegion(region);
@@ -282,9 +292,9 @@ export default function ServiceRequestScreen() {
                 }}
             >
                 {/* FIX 2: Use destructured Marker component instead of MapView.Marker */}
-                <Marker 
+                <Marker
                     coordinate={{ latitude: formData.latitude, longitude: formData.longitude }}
-                    opacity={0} 
+                    opacity={0}
                 />
             </MapView>
 
@@ -300,9 +310,9 @@ export default function ServiceRequestScreen() {
 
             <TouchableOpacity
                 onPress={handleCurrentLocation}
-                className="absolute bottom-40 right-6 bg-white p-3 rounded-full shadow-lg border border-gray-100"
+                className="absolute bottom-80 right-6 bg-white p-3 rounded-full shadow-lg border border-gray-100"
             >
-                <Ionicons name="locate" size={24} color="#3b82f6" />
+                <MaterialIcons name="my-location" size={24} color="#3b82f6" />
             </TouchableOpacity>
 
             <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl">
@@ -442,15 +452,55 @@ export default function ServiceRequestScreen() {
         </Animated.View>
     );
 
-   return (
+    // Success View
+    const renderSuccessView = () => (
+        <Animated.View
+            entering={FadeIn}
+            className="absolute top-0 left-0 right-0 bottom-0 bg-white z-50 items-center justify-center px-6"
+        >
+            <Animated.View
+                entering={ZoomIn.delay(200)}
+                className="w-32 h-32 bg-green-600 rounded-full items-center justify-center mb-8 shadow-xl shadow-green-200"
+            >
+                <Ionicons name="checkmark" size={64} color="white" />
+            </Animated.View>
+
+            <Animated.Text
+                entering={FadeIn.delay(400)}
+                className="text-2xl font-black text-gray-900 mb-2 tracking-wider uppercase text-center"
+            >
+                Request Submitted
+            </Animated.Text>
+
+            <Animated.Text
+                entering={FadeIn.delay(600)}
+                className="text-gray-500 font-medium text-center mb-8 text-base"
+            >
+                Notifying mechanics near you...
+            </Animated.Text>
+
+            <Animated.View
+                entering={FadeIn.delay(800)}
+                className="bg-gray-50 p-6 rounded-2xl w-full items-center border border-gray-100"
+            >
+                <Text className="text-xs font-bold text-gray-400 uppercase mb-2">Service Location</Text>
+                <Text className="text-gray-900 font-bold text-lg text-center leading-6">
+                    {formData.location}
+                </Text>
+            </Animated.View>
+        </Animated.View>
+    );
+
+    return (
         <SafeAreaView className="flex-1 bg-white">
             <StatusBar barStyle="dark-content" />
-            
+            {showSuccess && renderSuccessView()}
+
             {/* Header Pattern */}
             <View className="bg-white px-4 pb-4 border-b border-gray-100 pt-2">
                 <View className="flex-row items-center">
-                    <TouchableOpacity 
-                        onPress={() => step > 1 ? handlePrev() : navigation.goBack()} 
+                    <TouchableOpacity
+                        onPress={() => step > 1 ? handlePrev() : navigation.goBack()}
                         className="p-2 bg-gray-50 rounded-full mr-4"
                     >
                         <Ionicons name="arrow-back" size={24} color="#1f2937" />
