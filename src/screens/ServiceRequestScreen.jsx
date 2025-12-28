@@ -136,8 +136,7 @@ export default function ServiceRequestScreen() {
 
             console.log("Response:", response.data);
 
-            // Clear draft
-            await SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
+           
 
             // Show success screen
             setLastResponse(response.data);

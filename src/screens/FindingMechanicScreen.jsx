@@ -108,12 +108,15 @@ const FindingMechanicScreen = () => {
         }
 
         // 2. Mechanic Found - Proceed to next screen
-        else if (type === 'mechanic_accepted') {
-            navigation.navigate("MechanicFound", {
-                data: lastMessage,
-                userLocation: { latitude, longitude }
-            });
-        }
+        else if (lastMessage.type === 'mechanic_accepted') {
+    navigation.navigate("MechanicFound", {
+        data: lastMessage,
+        userLocation: { latitude, longitude },
+        // Pass these as a fallback
+        vehicleType: jobDetails?.vehicleType || paramVehicle,
+        problem: jobDetails?.problem || paramProblem
+    });
+}
 
         // 3. Error Cases: No Mechanic Found OR Job Expired
         else if (type === 'no_mechanic_found' || type === 'job_expired') {

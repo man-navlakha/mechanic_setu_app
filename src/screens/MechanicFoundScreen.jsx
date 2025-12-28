@@ -64,9 +64,16 @@ function calculateETA(userCoords, mechCoords) {
 }
 
 const MechanicFoundScreen = ({ navigation, route }) => {
-    const { data: routeData, userLocation: paramLocation } = route.params || {};
+    const { 
+        data: routeData, 
+        userLocation: paramLocation,
+        vehicleType: fallbackVehicle, 
+        problem: fallbackProblem 
+    } = route.params || {};
 
     const { socket, lastMessage } = useWebSocket();
+    console.log(routeData)
+    console.log(paramLocation)
 
     // State
     const [mechanic, setMechanic] = useState(null);
@@ -113,7 +120,7 @@ const MechanicFoundScreen = ({ navigation, route }) => {
     });
 
     // Initial Load
-    useEffect(() => {
+   useEffect(() => {
         const loadInitialData = async () => {
             // --- 1. Load Mechanic & Request Info ---
             if (routeData) {
@@ -150,20 +157,17 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
             // --- 2. Load Job Details (Problem/Vehicle) ---
             // REMOVED the "if (!paramLocation)" check so it always runs
-            try {
+           try {
                 const savedForm = await SecureStore.getItemAsync(FORM_STORAGE_KEY);
-                console.log("Fetched Form Data:", savedForm); // DEBUG LOG
                 if (savedForm) {
                     const parsedForm = JSON.parse(savedForm);
                     setJobDetails(parsedForm);
-
-                    // Fallback location if userLocation is still null
-                    if (!userLocation && parsedForm.latitude) {
-                        setUserLocation({
-                            latitude: parsedForm.latitude,
-                            longitude: parsedForm.longitude
-                        });
-                    }
+                } else if (fallbackVehicle || fallbackProblem) {
+                    // Use navigation fallbacks if storage is empty
+                    setJobDetails({
+                        vehicleType: fallbackVehicle,
+                        problem: fallbackProblem
+                    });
                 }
             } catch (e) {
                 console.error("Failed to load form data", e);
@@ -172,7 +176,6 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
         loadInitialData();
     }, [routeData]);
-
     // WebSocket Updates (kept same)
     useEffect(() => {
         if (!lastMessage || !requestId) return;
