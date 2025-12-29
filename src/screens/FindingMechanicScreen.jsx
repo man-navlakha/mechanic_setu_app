@@ -55,6 +55,17 @@ const FindingMechanicScreen = () => {
     const [jobDetails, setJobDetails] = useState(null);
     const userData = authUser || {};
 
+    const [adsData, setAdsData] = useState([]);
+    const [selectedAd, setSelectedAd] = useState(null);
+
+    useEffect(() => {
+        const loadAds = async () => {
+            const ads = await getMapAds();
+            setAdsData(ads);
+        };
+        loadAds();
+    }, []);
+
 
 
     // FIXED: Use a memoized coordinate to prevent the icon from "moving" during state re-renders
@@ -109,14 +120,14 @@ const FindingMechanicScreen = () => {
 
         // 2. Mechanic Found - Proceed to next screen
         else if (lastMessage.type === 'mechanic_accepted') {
-    navigation.navigate("MechanicFound", {
-        data: lastMessage,
-        userLocation: { latitude, longitude },
-        // Pass these as a fallback
-        vehicleType: jobDetails?.vehicleType || paramVehicle,
-        problem: jobDetails?.problem || paramProblem
-    });
-}
+            navigation.navigate("MechanicFound", {
+                data: lastMessage,
+                userLocation: { latitude, longitude },
+                // Pass these as a fallback
+                vehicleType: jobDetails?.vehicleType || paramVehicle,
+                problem: jobDetails?.problem || paramProblem
+            });
+        }
 
         // 3. Error Cases: No Mechanic Found OR Job Expired
         else if (type === 'no_mechanic_found' || type === 'job_expired') {
@@ -347,6 +358,21 @@ const FindingMechanicScreen = () => {
                             <Text>{userData.first_name} 🙋‍♂️</Text>
                         </View>
                     </Marker>
+                    {adsData.map((ad) => (
+                        <Marker
+                            key={`ad-${ad.id}`}
+                            coordinate={{ latitude: ad.latitude, longitude: ad.longitude }}
+                            onPress={() => setSelectedAd(ad)}
+                        >
+                            <View className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-lg overflow-hidden" style={{ width: 36, height: 36 }}>
+                                <Image
+                                    source={{ uri: ad.logo }}
+                                    className="w-full h-full rounded-full"
+                                    resizeMode="cover"
+                                />
+                            </View>
+                        </Marker>
+                    ))}
                 </MapView>
 
                 {/* Floating Navigation */}

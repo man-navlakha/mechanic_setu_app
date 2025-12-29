@@ -5,11 +5,12 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ConnectionStatus from '../components/ConnectionStatus';
 import { useAuth } from '../context/AuthContext';
+import { getMapAds } from '../utils/adsCache';
 import api from '../utils/api';
 
 const { width, height } = Dimensions.get('window');
@@ -25,6 +26,17 @@ const DashboardScreen = ({ navigation }) => {
     const userProfile = profile || {}; // Safety fallback
 
     const [recentHistory, setRecentHistory] = useState([]);
+
+    const [adsData, setAdsData] = useState([]);
+    const [selectedAd, setSelectedAd] = useState(null);
+
+    useEffect(() => {
+        const loadAds = async () => {
+            const ads = await getMapAds();
+            setAdsData(ads);
+        };
+        loadAds();
+    }, []);
 
     const [activeJob, setActiveJob] = useState(null);
 
@@ -206,6 +218,21 @@ const DashboardScreen = ({ navigation }) => {
                     showsUserLocation={true}
                     showsMyLocationButton={false}
                 >
+                    {adsData.map((ad) => (
+                        <Marker
+                            key={`ad-${ad.id}`}
+                            coordinate={{ latitude: ad.latitude, longitude: ad.longitude }}
+                            onPress={() => setSelectedAd(ad)}
+                        >
+                            <View className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-lg overflow-hidden" style={{ width: 36, height: 36 }}>
+                                <Image
+                                    source={{ uri: ad.logo }}
+                                    className="w-full h-full rounded-full"
+                                    resizeMode="cover"
+                                />
+                            </View>
+                        </Marker>
+                    ))}
                 </MapView>
 
                 {/* Floating Connection Status */}

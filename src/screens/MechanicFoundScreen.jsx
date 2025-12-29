@@ -19,7 +19,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming, ZoomIn } from 'react-native-reanimated';
 import { useWebSocket } from '../context/WebSocketContext';
+import { getMapAds } from '../utils/adsCache';
 import api from '../utils/api';
+
 import { resetRoot } from '../utils/navigationRef';
 
 const { width, height } = Dimensions.get('window');
@@ -64,11 +66,11 @@ function calculateETA(userCoords, mechCoords) {
 }
 
 const MechanicFoundScreen = ({ navigation, route }) => {
-    const { 
-        data: routeData, 
+    const {
+        data: routeData,
         userLocation: paramLocation,
-        vehicleType: fallbackVehicle, 
-        problem: fallbackProblem 
+        vehicleType: fallbackVehicle,
+        problem: fallbackProblem
     } = route.params || {};
 
     const { socket, lastMessage } = useWebSocket();
@@ -83,10 +85,23 @@ const MechanicFoundScreen = ({ navigation, route }) => {
     const [estimatedTime, setEstimatedTime] = useState(null);
     const [requestId, setRequestId] = useState(null);
 
+    // Ads State
+    const [adsData, setAdsData] = useState([]);
+    const [selectedAd, setSelectedAd] = useState(null);
+
+    useEffect(() => {
+        const loadAds = async () => {
+            const ads = await getMapAds();
+            setAdsData(ads);
+        };
+        loadAds();
+    }, []);
+
     const [isCancelModalOpen, setCancelModalOpen] = useState(false);
     const [selectedReason, setSelectedReason] = useState('');
     const [isJobCompleted, setIsJobCompleted] = useState(false);
     const [isJobCancelledState, setIsJobCancelledState] = useState(false);
+    const [isMechanicArrived, setIsMechanicArrived] = useState(false);
 
     const mapRef = useRef(null);
 
@@ -120,7 +135,7 @@ const MechanicFoundScreen = ({ navigation, route }) => {
     });
 
     // Initial Load
-   useEffect(() => {
+    useEffect(() => {
         const loadInitialData = async () => {
             // --- 1. Load Mechanic & Request Info ---
             if (routeData) {
@@ -157,7 +172,7 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
             // --- 2. Load Job Details (Problem/Vehicle) ---
             // REMOVED the "if (!paramLocation)" check so it always runs
-           try {
+            try {
                 const savedForm = await SecureStore.getItemAsync(FORM_STORAGE_KEY);
                 if (savedForm) {
                     const parsedForm = JSON.parse(savedForm);
@@ -219,8 +234,13 @@ const MechanicFoundScreen = ({ navigation, route }) => {
                         resetRoot('Main');
                     }, 4000);
                     break;
-                case 'no_mechanic_found':
-                    clearAndExit("We could not find a mechanic.");
+                // case 'no_mechanic_found':
+                //     // IGNORE: Spurious message from server after mechanic already found
+                //     // clearAndExit("We could not find a mechanic.");
+                //     break;
+                case 'mechanic_arrived':
+                    setIsMechanicArrived(true);
+                    Alert.alert("Mechanic Arrived", "The mechanic has arrived at your location!");
                     break;
             }
         }
@@ -567,15 +587,32 @@ const MechanicFoundScreen = ({ navigation, route }) => {
                                     </View>
                                 )}
                             </View>
+
                         </Marker>
                     )}
+
+                    {adsData.map((ad) => (
+                        <Marker
+                            key={`ad-${ad.id}`}
+                            coordinate={{ latitude: ad.latitude, longitude: ad.longitude }}
+                            onPress={() => setSelectedAd(ad)}
+                        >
+                            <View className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-lg overflow-hidden" style={{ width: 36, height: 36 }}>
+                                <Image
+                                    source={{ uri: ad.logo }}
+                                    className="w-full h-full rounded-full"
+                                    resizeMode="cover"
+                                />
+                            </View>
+                        </Marker>
+                    ))}
                 </MapView>
 
                 {/* Top Green Header */}
                 <SafeAreaView className="absolute top-0 left-0 right-0 z-10 bg-green-600 shadow-md pb-4 pt-2">
                     <View className="px-4 flex-row items-center pb-3 pt-4 mb-2">
                         <TouchableOpacity
-                            onPress={() => navigation.goBack()}
+                            onPress={() => navigation.goBack('/')}
                             className="mr-2"
                         >
                             <Ionicons name="chevron-back" size={28} color="white" />
@@ -583,10 +620,13 @@ const MechanicFoundScreen = ({ navigation, route }) => {
 
                         <View className="flex-1 items-center mr-8">
                             <Text className="text-green-100 text-xs font-bold uppercase tracking-wider mb-0.5">
-                                Mechanic is on the way
+                                {isMechanicArrived ? 'Status Update' : 'Mechanic is on the way'}
                             </Text>
                             <Text className="text-white text-2xl font-extrabold">
-                                {estimatedTime ? `Arriving in ${estimatedTime} mins` : 'Calculating ETA...'}
+                                {isMechanicArrived
+                                    ? "Mechanic Arrived"
+                                    : (estimatedTime ? `Arriving in ${estimatedTime} mins` : 'Calculating ETA...')
+                                }
                             </Text>
                         </View>
                     </View>

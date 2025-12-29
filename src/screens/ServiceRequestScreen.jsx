@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -19,7 +20,9 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Animated, { FadeIn, SlideInRight, SlideOutLeft, ZoomIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getMapAds } from '../utils/adsCache';
 import api from '../utils/api';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -81,6 +84,18 @@ export default function ServiceRequestScreen() {
         additionalNotes: ''
     });
 
+    // Ads State
+    const [adsData, setAdsData] = useState([]);
+    const [selectedAd, setSelectedAd] = useState(null);
+
+    useEffect(() => {
+        const loadAds = async () => {
+            const ads = await getMapAds();
+            setAdsData(ads);
+        };
+        loadAds();
+    }, []);
+
     const [mapRegion, setMapRegion] = useState({
         latitude: 23.0225,
         longitude: 72.5714,
@@ -136,7 +151,7 @@ export default function ServiceRequestScreen() {
 
             console.log("Response:", response.data);
 
-           
+
 
             // Show success screen
             setLastResponse(response.data);
@@ -295,6 +310,22 @@ export default function ServiceRequestScreen() {
                     coordinate={{ latitude: formData.latitude, longitude: formData.longitude }}
                     opacity={0}
                 />
+
+                {adsData.map((ad) => (
+                    <Marker
+                        key={`ad-${ad.id}`}
+                        coordinate={{ latitude: ad.latitude, longitude: ad.longitude }}
+                        onPress={() => setSelectedAd(ad)}
+                    >
+                        <View className="bg-white p-0.5 rounded-full border-2 border-amber-400 shadow-lg overflow-hidden" style={{ width: 36, height: 36 }}>
+                            <Image
+                                source={{ uri: ad.logo }}
+                                className="w-full h-full rounded-full"
+                                resizeMode="cover"
+                            />
+                        </View>
+                    </Marker>
+                ))}
             </MapView>
 
             {/* Visual Pin Overlay - EXACT center for iOS accuracy */}
