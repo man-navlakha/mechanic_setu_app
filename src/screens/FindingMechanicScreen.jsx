@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -27,7 +27,7 @@ import Animated, {
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import api from '../utils/api';
-import { resetRoot } from '../utils/navigationRef';
+import { navigate, resetRoot } from '../utils/navigationRef';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,6 +48,7 @@ const FORM_STORAGE_KEY = 'punctureRequestFormData';
 
 const FindingMechanicScreen = () => {
     const navigation = useNavigation();
+    const isFocused = useIsFocused();
     const { profile: authUser } = useAuth();
     const route = useRoute();
     const mapRef = useRef(null);
@@ -58,6 +59,13 @@ const FindingMechanicScreen = () => {
 
     const [adsData, setAdsData] = useState([]);
     const [selectedAd, setSelectedAd] = useState(null);
+
+    // FIX: Mounted Ref to prevent memory leaks/crashes
+    const isMounted = useRef(true);
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
 
     useEffect(() => {
         const loadAds = async () => {
@@ -92,78 +100,72 @@ const FindingMechanicScreen = () => {
     const { socket, lastMessage } = useWebSocket();
 
     useEffect(() => {
-        if (!lastMessage || !navigation.isFocused()) return;
+        // SAFETY CHECK: Stop if component is unmounted OR screen is not focused
+        if (!isMounted.current || !lastMessage || !isFocused) return;
 
         console.log("[FindingMechanic] New Message:", lastMessage);
         const { type, service_request, message, job_id } = lastMessage;
 
-        // 1. Handle Job Confirmation (Confirmation from server)
+        // 1. Handle Job Confirmation
         if (type === 'new_job' && service_request) {
-            // Ensure this is the job we are actually looking for
             if (service_request.id === parseInt(requestId)) {
                 console.log("[FindingMechanic] Server confirmed job is live.");
 
-                // Sync local state with official server data
-                setJobDetails({
-                    vehicleType: service_request.vehical_type,
-                    problem: service_request.problem,
-                    location: service_request.location,
-                    id: service_request.id
-                });
+                // Safety check before setting state
+                if (isMounted.current) {
+                    setJobDetails({
+                        vehicleType: service_request.vehical_type,
+                        problem: service_request.problem,
+                        location: service_request.location,
+                        id: service_request.id
+                    });
+                }
 
-                // TRIGGER: Start your fake mechanic simulation now!
-                // (Call the simulation function we discussed earlier)
                 if (typeof startFakeMechanicSimulation === 'function') {
                     startFakeMechanicSimulation();
                 }
             }
         }
 
-        // 2. Mechanic Found - Proceed to next screen
+        // 2. Mechanic Found
         else if (lastMessage.type === 'mechanic_accepted') {
-            navigation.navigate("MechanicFound", {
+            navigate("MechanicFound", {
                 data: lastMessage,
                 userLocation: { latitude, longitude },
-                // Pass these as a fallback
                 vehicleType: jobDetails?.vehicleType || paramVehicle,
                 problem: jobDetails?.problem || paramProblem
             });
         }
 
-        // 3. Error Cases: No Mechanic Found OR Job Expired
+        // 3. Error Cases
         else if (type === 'no_mechanic_found') {
-            // Check if this error matches the current request
             const msgJobId = job_id || (service_request?.id);
             if (msgJobId && String(msgJobId) !== String(requestId)) {
-                console.log(`[FindingMechanic] Ignoring no_mechanic_found for mismatched job: ${msgJobId} (Current: ${requestId})`);
                 return;
             }
-
-            navigation.navigate("NearbyMechanics", {
+            navigate("NearbyMechanics", {
                 jobDetails: jobDetails || { vehicleType: paramVehicle, problem: paramProblem },
                 userLocation: { latitude, longitude }
             });
         }
         else if (type === 'job_expired') {
-
             const alertTitle = "Request Expired";
             const alertMessage = message || "Please try again later.";
 
+            // Use global navigation safely
             Alert.alert(
                 alertTitle,
                 alertMessage,
                 [
                     {
                         text: "Try Again",
-                        onPress: () => {
-                            navigation.goBack();
-                        }
+                        onPress: () => resetRoot('Main')
                     }
                 ],
                 { cancelable: false }
             );
         }
-    }, [lastMessage]);
+    }, [lastMessage, isFocused]);
     const [searchTime, setSearchTime] = useState(0);
     const [isCancelModalOpen, setCancelModalOpen] = useState(false);
     const [selectedReason, setSelectedReason] = useState('');

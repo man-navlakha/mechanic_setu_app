@@ -4,15 +4,23 @@ export const navigationRef = createNavigationContainerRef();
 
 export function navigate(name, params) {
     if (navigationRef.isReady()) {
-        navigationRef.navigate(name, params);
+        try {
+            navigationRef.navigate(name, params);
+        } catch (e) {
+            console.warn("Navigation failed (navigate):", e);
+        }
     }
 }
 
 export function resetRoot(name) {
     if (navigationRef.isReady()) {
-        navigationRef.reset({
-            index: 0,
-            routes: [{ name }],
-        });
+        try {
+            navigationRef.reset({
+                index: 0,
+                routes: [{ name }],
+            });
+        } catch (e) {
+            console.warn("Navigation failed (resetRoot):", e);
+        }
     }
 }

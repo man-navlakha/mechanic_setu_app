@@ -92,6 +92,13 @@ const MechanicFoundScreen = ({ route }) => {
     const [adsData, setAdsData] = useState([]);
     const [selectedAd, setSelectedAd] = useState(null);
 
+    // FIX: Mounted Ref to prevent memory leaks/crashes
+    const isMounted = useRef(true);
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
+
     useEffect(() => {
         const loadAds = async () => {
             const ads = await getMapAds();
@@ -208,7 +215,7 @@ const MechanicFoundScreen = ({ route }) => {
         const msgReqId = String(lastMessage.request_id || lastMessage.job_id);
         const currentReqId = String(requestId);
 
-        if (msgReqId === currentReqId) {
+        if (msgReqId === currentReqId && isMounted.current) {
             switch (lastMessage.type) {
                 case 'job_completed':
                     // Show success screen instead of alert
@@ -220,7 +227,7 @@ const MechanicFoundScreen = ({ route }) => {
 
                     // Navigate home after delay
                     setTimeout(() => {
-                        navigate('Main');
+                        if (isMounted.current) navigate('Main');
                     }, 4000);
                     break;
                 case 'job_cancelled':
@@ -234,7 +241,7 @@ const MechanicFoundScreen = ({ route }) => {
 
                     // Navigate home after delay
                     setTimeout(() => {
-                        navigate('Main');
+                        if (isMounted.current) navigate('Main');
                     }, 4000);
                     break;
                 // case 'no_mechanic_found':
@@ -268,24 +275,20 @@ const MechanicFoundScreen = ({ route }) => {
 
     const clearAndExit = async (msg = null) => {
         try {
-            // 1. Cleanup storage immediately
             await SecureStore.deleteItemAsync(ACTIVE_JOB_STORAGE_KEY);
             await SecureStore.deleteItemAsync(FORM_STORAGE_KEY);
 
-            // 2. Show alert if message provided
             if (msg) {
                 Alert.alert("Notice", msg, [
                     {
                         text: "OK",
-                        onPress: () => resetRoot('Main')
+                        onPress: () => resetRoot('Main') // Use resetRoot here
                     }
                 ]);
             } else {
-                resetRoot('Main');
+                resetRoot('Main'); // Use resetRoot here
             }
         } catch (err) {
-            console.error("Exit Error:", err);
-            // Fallback: Try to navigate anyway
             resetRoot('Main');
         }
     };
@@ -452,7 +455,7 @@ const MechanicFoundScreen = ({ route }) => {
             <SafeAreaView className="flex-1 bg-white items-center justify-center">
                 <ActivityIndicator size="large" color="#2563eb" />
                 <Text className="mt-4 text-gray-500 font-medium">Synced with server...</Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Main")} className="mt-8 p-2">
+                <TouchableOpacity onPress={() => resetRoot("Main")} className="mt-8 p-2">
                     <Text className="text-red-400">Cancel & Home</Text>
                 </TouchableOpacity>
             </SafeAreaView>
