@@ -27,7 +27,7 @@ import Animated, {
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import api from '../utils/api';
-
+import { resetRoot } from '../utils/navigationRef';
 
 const { width, height } = Dimensions.get('window');
 
@@ -255,10 +255,7 @@ const FindingMechanicScreen = () => {
             }
 
             console.log("Request Cancelled");
-            navigation.reset({
-                index: 0,
-                routes: [{ name: 'Main' }],
-            });
+            resetRoot('Main');
 
         } catch (error) {
             console.error("Cancellation failed", error);

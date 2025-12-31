@@ -22,6 +22,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming, ZoomIn 
 import { useWebSocket } from '../context/WebSocketContext';
 import { getMapAds } from '../utils/adsCache';
 import api from '../utils/api';
+import { navigate, resetRoot } from '../utils/navigationRef';
 
 
 
@@ -219,7 +220,7 @@ const MechanicFoundScreen = ({ route }) => {
 
                     // Navigate home after delay
                     setTimeout(() => {
-                        navigation.navigate('Main');
+                        navigate('Main');
                     }, 4000);
                     break;
                 case 'job_cancelled':
@@ -233,7 +234,7 @@ const MechanicFoundScreen = ({ route }) => {
 
                     // Navigate home after delay
                     setTimeout(() => {
-                        navigation.navigate('Main');
+                        navigate('Main');
                     }, 4000);
                     break;
                 // case 'no_mechanic_found':
@@ -276,16 +277,16 @@ const MechanicFoundScreen = ({ route }) => {
                 Alert.alert("Notice", msg, [
                     {
                         text: "OK",
-                        onPress: () => navigation.navigate('Main')
+                        onPress: () => resetRoot('Main')
                     }
                 ]);
             } else {
-                navigation.navigate('Main');
+                resetRoot('Main');
             }
         } catch (err) {
             console.error("Exit Error:", err);
             // Fallback: Try to navigate anyway
-            navigation.navigate('Main');
+            resetRoot('Main');
         }
     };
 
