@@ -13,15 +13,16 @@ import {
     Text,
     TouchableOpacity, View
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming, ZoomIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ImageAdCard } from '../components/ImageAdCard';
+import { SafetyToolkit } from '../components/SafetyToolkit';
 import { useWebSocket } from '../context/WebSocketContext';
 import { getMapAds } from '../utils/adsCache';
 import { navigate, resetRoot } from '../utils/navigationRef';
 import { updateMechanicTrackingNotification } from '../utils/notifications';
-
 
 
 const { width, height } = Dimensions.get('window');
@@ -109,6 +110,7 @@ const MechanicFoundScreen = ({ route }) => {
     const [isJobCompleted, setIsJobCompleted] = useState(false);
     const [isJobCancelledState, setIsJobCancelledState] = useState(false);
     const [isMechanicArrived, setIsMechanicArrived] = useState(false);
+    const [showSafetyToolkit, setShowSafetyToolkit] = useState(false);
 
     const mapRef = useRef(null);
 
@@ -137,7 +139,15 @@ const MechanicFoundScreen = ({ route }) => {
         return {
             transform: [{ translateY: translateY.value }],
             height: height, // Full height available
-            top: 0
+            top: 0,
+            marginBottom: 16
+        };
+    });
+
+    // Animated style for Safety button to follow bottom sheet
+    const rSafetyButtonStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateY: translateY.value - 80 }], // 80px above bottom sheet
         };
     });
 
@@ -322,48 +332,63 @@ const MechanicFoundScreen = ({ route }) => {
     const RECOMMENDED_ADS = [
         {
             id: '1',
-            title: 'Castrol Magnatec',
-            subtitle: '20% Off Engine Oil',
-            description: 'Ensure a smooth ride with premium oil change.',
-            icon: 'water',
-            color: '#16a34a',
-            price: 'From ₹499'
+            type: 'image',
+            title: 'Flat 20% OFF',
+            subtitle: 'on Premium Car Servicing',
+            description: 'Book comprehensive car service at your doorstep',
+            bgColor: '#EEF2FF',
+            accentColor: '#4F46E5',
+            image: 'https://cdn-icons-png.flaticon.com/512/3097/3097136.png',
+            ctaText: 'Book Service',
+            badge: 'LIMITED OFFER'
         },
         {
             id: '2',
-            title: 'RSA Shield',
-            subtitle: 'Roadside Assistance',
-            description: 'Get 24/7 breakdown support for a year.',
-            icon: 'shield-checkmark',
-            color: '#2563eb',
-            price: '₹99/year'
+            type: 'image',
+            title: 'Roadside Assistance',
+            subtitle: '24/7 Emergency Support',
+            description: 'Get instant help anywhere, anytime',
+            bgColor: '#FEF3C7',
+            accentColor: '#F59E0B',
+            image: 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
+            ctaText: 'Subscribe Now',
+            badge: '₹99/Year'
         },
         {
             id: '3',
-            title: 'Pixel Class',
-            subtitle: 'now Submit Assignment on time ',
-            description: 'Comprehensive car service at your doorstep.',
-            icon: 'book',
-            color: '#dc2626',
-            price: 'Download Now'
+            type: 'image',
+            title: 'Castrol Engine Oil',
+            subtitle: 'Magnatec Protection',
+            description: 'Premium engine oil with 75% less engine wear',
+            bgColor: '#D1FAE5',
+            accentColor: '#059669',
+            image: 'https://cdn-icons-png.flaticon.com/512/2917/2917242.png',
+            ctaText: 'Shop Now',
+            badge: 'From ₹499'
         },
         {
             id: '4',
-            title: 'GoMechanic',
-            subtitle: 'Full Service',
-            description: 'Comprehensive car service at your doorstep.',
-            icon: 'construct',
-            color: '#740000ff',
-            price: 'Save Time & Wallet'
+            type: 'image',
+            title: 'Tyre Replacement',
+            subtitle: 'Top Brands Available',
+            description: 'Get the best deals on premium tyres',
+            bgColor: '#FEE2E2',
+            accentColor: '#DC2626',
+            image: 'https://cdn-icons-png.flaticon.com/512/3097/3097039.png',
+            ctaText: 'View Offers',
+            badge: 'Save Big'
         },
         {
             id: '5',
-            title: 'GoMechanic',
-            subtitle: 'Full Service',
-            description: 'Comprehensive car service at your doorstep.',
-            icon: 'construct',
-            color: '#dc2626',
-            price: 'Save ₹1000'
+            type: 'image',
+            title: 'Battery Check',
+            subtitle: 'Free Inspection',
+            description: 'Avoid unexpected breakdowns with battery testing',
+            bgColor: '#DBEAFE',
+            accentColor: '#2563EB',
+            image: 'https://cdn-icons-png.flaticon.com/512/2917/2917439.png',
+            ctaText: 'Book Now',
+            badge: 'FREE'
         },
     ];
 
@@ -596,9 +621,11 @@ const MechanicFoundScreen = ({ route }) => {
                     ))}
                 </MapView>
 
+
+
                 {/* Top Green Header */}
-                <SafeAreaView className={`absolute top-0 left-0 right-0 z-10 ${isMechanicArrived ? 'bg-blue-600' : 'bg-green-600'} shadow-md pb-4 pt-2`}>
-                    <View className="px-4 flex-row items-center pb-3 pt-4 mb-2">
+                <View className={`absolute -top-8 left-0 right-0 z-10 ${isMechanicArrived ? 'bg-blue-600' : 'bg-green-600'} shadow-md pb-4 pt-2`}>
+                    <View className="px-4 flex-row mt-14 items-center pb-3 pt-4 mb-2">
                         <TouchableOpacity
                             onPress={() => navigation.goBack()}
                             className="mr-2"
@@ -618,55 +645,91 @@ const MechanicFoundScreen = ({ route }) => {
                             </Text>
                         </View>
                     </View>
-                </SafeAreaView>
-
+                </View>
+                {/* Safety Button - Follows Bottom Sheet */}
+                <Animated.View
+                    style={[
+                        { position: 'absolute', top: 0, right: 16, zIndex: 20 },
+                        rSafetyButtonStyle
+                    ]}
+                >
+                    <TouchableOpacity
+                        onPress={() => setShowSafetyToolkit(true)}
+                        className="bg-white rounded-full shadow-lg px-4 py-2 flex-row items-center"
+                        style={{ elevation: 5 }}
+                    >
+                        <Ionicons name="shield-checkmark" size={18} color="#3b82f6" />
+                        <Text className="text-blue-600 font-bold text-sm ml-1.5">Safety</Text>
+                    </TouchableOpacity>
+                </Animated.View>
                 {/* Draggable Bottom Sheet */}
                 <GestureDetector gesture={gesture}>
-                    <Animated.View style={[{ position: 'absolute', left: 0, right: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, elevation: 10, paddingTop: 10 }, rBottomSheetStyle]}>
-                        <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-6" />
-                        <View className="px-6 pb-10">
-                            {/* Mechanic Details */}
-                            <View className="flex-row items-center gap-4 mb-6">
-                                <View className="w-16 h-16 rounded-full bg-gray-200 border-2 border-gray-500 overflow-hidden">
-                                    {mechanic.Mechanic_profile_pic ? <Image source={{ uri: mechanic.Mechanic_profile_pic }} className="w-full h-full" /> : <View className="w-full h-full bg-gray-300 items-center justify-center"><Text className="text-xl font-bold">{mechanic.first_name[0]}</Text></View>}
+                    <Animated.View style={[{ position: 'absolute', left: 0, right: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, elevation: 10, paddingTop: 10, marginBottom: 3 }, rBottomSheetStyle]}>
+                        <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-2" />
+                        <ScrollView>
+                            <View className="px-6 pb-10 mb-52 ">
+                                {/* Mechanic Details */}
+                                <View className="flex-row items-center gap-4 mb-6">
+                                    <View className="w-16 h-16 rounded-full bg-gray-200 border-2 border-gray-500 overflow-hidden">
+                                        {mechanic.Mechanic_profile_pic ? <Image source={{ uri: mechanic.Mechanic_profile_pic }} className="w-full h-full" /> : <View className="w-full h-full bg-gray-300 items-center justify-center"><Text className="text-xl font-bold">{mechanic.first_name[0]}</Text></View>}
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-lg font-bold text-gray-900">{mechanic.first_name} {mechanic.last_name}</Text>
+                                        <Text className="text-gray-500 text-sm">Verified Mechanic</Text>
+                                    </View>
+                                    <TouchableOpacity onPress={handleCallMechanic} className="w-12 h-12 bg-white rounded-full border border-gray-400 items-center justify-center"><Feather name="phone-call" size={15} color="green" /></TouchableOpacity>
                                 </View>
-                                <View className="flex-1">
-                                    <Text className="text-lg font-bold text-gray-900">{mechanic.first_name} {mechanic.last_name}</Text>
-                                    <Text className="text-gray-500 text-sm">Verified Mechanic</Text>
+                                {/* Job Details Section (FIXED DISPLAY) */}
+                                <View className="bg-gray-50 p-4 rounded-2xl mb-6">
+                                    <Text className="text-xs font-bold text-gray-400 uppercase mb-2">Issue Reported</Text>
+                                    <Text className="text-gray-900 font-bold text-lg">{jobDetails?.problem || 'General Breakdown'}</Text>
+                                    {jobDetails?.vehicleType && <Text className="text-blue-600 font-medium mt-1 capitalize">{jobDetails.vehicleType}</Text>}
                                 </View>
-                                <TouchableOpacity onPress={handleCallMechanic} className="w-12 h-12 bg-white rounded-full border border-gray-400 items-center justify-center"><Feather name="phone-call" size={15} color="green" /></TouchableOpacity>
-                            </View>
 
-                            {/* Job Details Section (FIXED DISPLAY) */}
-                            <View className="bg-gray-50 p-4 rounded-2xl mb-6">
-                                <Text className="text-xs font-bold text-gray-400 uppercase mb-2">Issue Reported</Text>
-                                <Text className="text-gray-900 font-bold text-lg">{jobDetails?.problem || 'General Breakdown'}</Text>
-                                {jobDetails?.vehicleType && <Text className="text-blue-600 font-medium mt-1 capitalize">{jobDetails.vehicleType}</Text>}
-                            </View>
+                                {/* Having an Issue Banner */}
+                                <TouchableOpacity
+                                    onPress={() => setShowSafetyToolkit(true)}
+                                    className="bg-blue-50 rounded-2xl p-4 mb-6 flex-row items-center"
+                                >
+                                    <View className="w-10 h-10 bg-blue-500 rounded-full items-center justify-center mr-3">
+                                        <Ionicons name="headset" size={20} color="white" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-gray-900 font-bold text-base">Having an issue?</Text>
+                                        <Text className="text-gray-500 text-sm">We're a tap away</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                                </TouchableOpacity>
 
-                            {/* ADS CAROUSEL (Uber-style) */}
-                            <View className="mb-8">
-                                <Text className="mr-6 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Recommended for you</Text>
-                                <FlatList
-                                    data={RECOMMENDED_ADS}
-                                    renderItem={renderAdItem}
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    snapToInterval={width * 0.8}
-                                    decelerationRate="fast"
-                                    // Removed negative margin or padding logic from FindingMechanicScreen to keep it simple here
-                                    keyExtractor={(item) => item.id}
-                                />
-                            </View>
+                                {/* ADS CAROUSEL (Uber-style) */}
+                                <View className="mb-6  ">
 
-                            <TouchableOpacity onPress={() => navigation.navigate('Cancellation', { requestId })} className="w-full py-4 rounded-xl bg-red-50 flex-row items-center justify-center border border-red-100"><Text className="text-red-500 font-bold">Cancel Request</Text></TouchableOpacity>
-                        </View>
+                                    <Text className="mr-6 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Recommended for you</Text>
+                                    <FlatList
+                                        data={RECOMMENDED_ADS}
+                                        renderItem={({ item }) => <ImageAdCard item={item} />}
+                                        scrollEnabled={false}
+                                        keyExtractor={(item) => item.id}
+                                    />
+                                </View>
+
+                                <TouchableOpacity onPress={() => navigation.navigate('Cancellation', { requestId })} className="w-full py-4 rounded-xl bg-red-50 flex-row items-center justify-center border border-red-100 mb-36"><Text className="text-red-500 font-bold">Cancel Request</Text></TouchableOpacity>
+                            </View>
+                        </ScrollView>
                     </Animated.View>
                 </GestureDetector>
 
 
             </View>
-        </View>
+
+            {/* Safety Toolkit Modal */}
+            <SafetyToolkit
+                visible={showSafetyToolkit}
+                onClose={() => setShowSafetyToolkit(false)}
+                mechanicName={mechanic ? `${mechanic.first_name} ${mechanic.last_name}` : 'your mechanic'}
+                userLocation={userLocation}
+            />
+        </View >
     );
 };
 

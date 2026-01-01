@@ -196,48 +196,63 @@ const FindingMechanicScreen = () => {
     const RECOMMENDED_ADS = [
         {
             id: '1',
-            title: 'Castrol Magnatec',
-            subtitle: '20% Off Engine Oil',
-            description: 'Ensure a smooth ride with premium oil change.',
-            icon: 'water',
-            color: '#16a34a',
-            price: 'From ₹499'
+            type: 'image',
+            title: 'Flat 20% OFF',
+            subtitle: 'on Premium Car Servicing',
+            description: 'Book comprehensive car service at your doorstep',
+            bgColor: '#EEF2FF',
+            accentColor: '#4F46E5',
+            image: 'https://cdn-icons-png.flaticon.com/512/3097/3097136.png',
+            ctaText: 'Book Service',
+            badge: 'LIMITED OFFER'
         },
         {
             id: '2',
-            title: 'RSA Shield',
-            subtitle: 'Roadside Assistance',
-            description: 'Get 24/7 breakdown support for a year.',
-            icon: 'shield-checkmark',
-            color: '#2563eb',
-            price: '₹99/year'
+            type: 'image',
+            title: 'Roadside Assistance',
+            subtitle: '24/7 Emergency Support',
+            description: 'Get instant help anywhere, anytime',
+            bgColor: '#FEF3C7',
+            accentColor: '#F59E0B',
+            image: 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
+            ctaText: 'Subscribe Now',
+            badge: '₹99/Year'
         },
         {
             id: '3',
-            title: 'Pixel Class',
-            subtitle: 'now Submit Assignment on time ',
-            description: 'Comprehensive car service at your doorstep.',
-            icon: 'book',
-            color: '#dc2626',
-            price: 'Download Now'
+            type: 'image',
+            title: 'Castrol Engine Oil',
+            subtitle: 'Magnatec Protection',
+            description: 'Premium engine oil with 75% less engine wear',
+            bgColor: '#D1FAE5',
+            accentColor: '#059669',
+            image: 'https://cdn-icons-png.flaticon.com/512/2917/2917242.png',
+            ctaText: 'Shop Now',
+            badge: 'From ₹499'
         },
         {
             id: '4',
-            title: 'GoMechanic',
-            subtitle: 'Full Service',
-            description: 'Comprehensive car service at your doorstep.',
-            icon: 'construct',
-            color: '#740000ff',
-            price: 'Save Time & Wallet'
+            type: 'image',
+            title: 'Tyre Replacement',
+            subtitle: 'Top Brands Available',
+            description: 'Get the best deals on premium tyres',
+            bgColor: '#FEE2E2',
+            accentColor: '#DC2626',
+            image: 'https://cdn-icons-png.flaticon.com/512/3097/3097039.png',
+            ctaText: 'View Offers',
+            badge: 'Save Big'
         },
         {
             id: '5',
-            title: 'GoMechanic',
-            subtitle: 'Full Service',
-            description: 'Comprehensive car service at your doorstep.',
-            icon: 'construct',
-            color: '#dc2626',
-            price: 'Save ₹1000'
+            type: 'image',
+            title: 'Battery Check',
+            subtitle: 'Free Inspection',
+            description: 'Avoid unexpected breakdowns with battery testing',
+            bgColor: '#DBEAFE',
+            accentColor: '#2563EB',
+            image: 'https://cdn-icons-png.flaticon.com/512/2917/2917439.png',
+            ctaText: 'Book Now',
+            badge: 'FREE'
         },
     ];
 
@@ -414,16 +429,14 @@ const FindingMechanicScreen = () => {
                             {/* ADS CAROUSEL (Uber-style) */}
                             <View className="mb-8">
                                 <Text className="px-6 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Recommended for you</Text>
-                                <FlatList
-                                    data={RECOMMENDED_ADS}
-                                    renderItem={renderAdItem}
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    snapToInterval={width * 0.8}
-                                    decelerationRate="fast"
-                                    contentContainerStyle={{ paddingHorizontal: 24 }}
-                                    keyExtractor={(item) => item.id}
-                                />
+                                <View className="px-6">
+                                    <FlatList
+                                        data={RECOMMENDED_ADS}
+                                        renderItem={({ item }) => <ImageAdCard item={item} />}
+                                        scrollEnabled={false}
+                                        keyExtractor={(item) => item.id}
+                                    />
+                                </View>
 
                             </View>
 
