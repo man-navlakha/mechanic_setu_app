@@ -665,7 +665,10 @@ const MechanicFoundScreen = ({ route }) => {
                 {/* Draggable Bottom Sheet */}
                 <GestureDetector gesture={gesture}>
                     <Animated.View style={[{ position: 'absolute', left: 0, right: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, elevation: 10, paddingTop: 10, marginBottom: 3 }, rBottomSheetStyle]}>
+                        {/* Drag Handle */}
                         <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-2" />
+
+
                         <ScrollView>
                             <View className="px-6 pb-10 mb-52 ">
                                 {/* Mechanic Details */}

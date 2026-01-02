@@ -149,11 +149,7 @@ const DashboardScreen = ({ navigation }) => {
         latitudeDelta: 0.1, // Zoomed out initially
         longitudeDelta: 0.1,
     });
-    // This listener runs every time the Dashboard becomes visible again
-    const unsubscribe = navigation.addListener('focus', () => {
-        checkActiveJob(); // This will now find 'null' because you cleared the key
-        getUserLocation();
-    });
+
     const getStatusIcon = (type) => type === 'car' ? 'car-sport' : 'motorbike';
 
     const mapStyle = [
@@ -265,7 +261,7 @@ const DashboardScreen = ({ navigation }) => {
                         ]}
                     >
                         {/* Drag Handle */}
-                        <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-6" />
+                        <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-2" />
 
                         <View className="px-6 pb-20">
                             {/* User Profile Card */}
