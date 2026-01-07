@@ -1,0 +1,23 @@
+{
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "lang": "en",
+  "name": "Mechanic Setu",
+  "scope": "/",
+  "short_name": "Mechanic Setu",
+  "start_url": "/",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "related_applications": [
+    {
+      "platform": "itunes",
+      "id": "com.anonymous.mechanicsetu"
+    },
+    {
+      "platform": "play",
+      "url": "http://play.google.com/store/apps/details?id=com.anonymous.mechanicsetu",
+      "id": "com.anonymous.mechanicsetu"
+    }
+  ],
+  "prefer_related_applications": true
+}
