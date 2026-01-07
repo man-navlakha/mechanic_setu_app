@@ -8,14 +8,15 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "web:build": "echo 'For deployment, push to GitHub and connect to Vercel/Netlify'",
+    "web:build": "expo export:web",
     "web:prod": "NODE_ENV=production expo start --web --no-dev --minify",
-    "web:serve": "npx serve dist -l 3000",
+    "web:serve": "npx serve web-build -l 3000",
     "lint": "expo lint",
     "optimize:images": "node optimize-images.js",
     "optimize:apply": "node apply-optimized-images.js",
     "optimize:check": "node check-optimization.js",
-    "optimize:all": "npm run optimize:images && npm run optimize:check"
+    "optimize:all": "npm run optimize:images && npm run optimize:check",
+    "deploy": "npm run web:build && gh-pages -d web-build"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -58,12 +59,15 @@
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
+    "@expo/webpack-config": "^19.0.1",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "gh-pages": "^6.3.0",
     "sharp": "^0.34.5",
     "sharp-cli": "^5.2.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "webpack-dev-server": "^5.2.2"
   },
   "private": true
 }

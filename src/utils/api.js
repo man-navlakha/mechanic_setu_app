@@ -1,10 +1,10 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const BASE_URL = 'https://mechanic-setu.onrender.com/api';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://mechanic-setu.onrender.com/api';
 
 const api = axios.create({
-    baseURL: BASE_URL,
+    baseURL: API_URL,
     withCredentials: true,
     xsrfCookieName: 'csrftoken',
     xsrfHeaderName: 'X-CSRFToken',
@@ -79,7 +79,7 @@ api.interceptors.response.use(
 
             try {
                 console.log("Attempting to refresh token...");
-                await axios.post(`${BASE_URL}/core/token/refresh/`, {}, { withCredentials: true });
+                await axios.post(`${API_URL}/core/token/refresh/`, {}, { withCredentials: true });
                 console.log("Token refresh successful.");
 
                 isRefreshing = false;

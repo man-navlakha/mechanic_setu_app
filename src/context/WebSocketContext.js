@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import api, { BASE_URL } from '../utils/api';
+import api, { API_URL } from '../utils/api';
 import { useAuth } from './AuthContext';
 
 const WebSocketContext = createContext(null);
@@ -144,8 +144,8 @@ export const WebSocketProvider = ({ children }) => {
             if (!wsToken) throw new Error("Failed to get WebSocket token");
 
             // 2. Determine WebSocket URL
-            let wsHost = BASE_URL.replace(/^https?:\/\//, '').replace(/\/api\/?$/, '');
-            const wsScheme = BASE_URL.startsWith('https') ? 'wss' : 'ws';
+            let wsHost = API_URL.replace(/^https?:\/\//, '').replace(/\/api\/?$/, '');
+            const wsScheme = API_URL.startsWith('https') ? 'wss' : 'ws';
             const wsUrl = `${wsScheme}://${wsHost}/ws/job_notifications/?token=${wsToken}`;
 
             console.log(`[WS-PROVIDER] Connecting to: ${wsUrl}`);

@@ -39,7 +39,7 @@
     "web": {
       "output": "static",
       "favicon": "./assets/logo-optimized.png",
-      "bundler": "metro",
+      "bundler": "webpack",
       "name": "Mechanic Setu",
       "shortName": "Mechanic Setu",
       "description": "On-demand mechanic services at your location",
