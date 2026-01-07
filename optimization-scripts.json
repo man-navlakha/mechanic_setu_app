@@ -1,0 +1,9 @@
+{
+    "name": "mechanic-setu",
+    "scripts": {
+        "optimize:images": "node optimize-images.js",
+        "optimize:apply": "node apply-optimized-images.js",
+        "optimize:check": "node check-optimization.js",
+        "optimize:all": "npm run optimize:images && npm run optimize:check"
+    }
+}

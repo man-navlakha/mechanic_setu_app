@@ -4,7 +4,7 @@
     "slug": "mechanic-setu",
     "version": "1.0.6",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/logo-optimized.png",
     "scheme": "mechanicsetu",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -28,9 +28,9 @@
       },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/logo.png",
-        "backgroundImage": "./assets/logo.png",
-        "monochromeImage": "./assets/logo.png"
+        "foregroundImage": "./assets/logo-optimized.png",
+        "backgroundImage": "./assets/logo-optimized.png",
+        "monochromeImage": "./assets/logo-optimized.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -38,13 +38,13 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/logo-optimized.png"
     },
     "plugins": [
       [
         "expo-splash-screen",
         {
-          "image": "./assets/logo.png",
+          "image": "./assets/logo-optimized.png",
           "borderRadius": 10,
           "backgroundColor": "#ffffff"
         }
@@ -52,14 +52,14 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/logo.png",
+          "icon": "./assets/logo-optimized.png",
           "color": "#10b981",
           "mode": "production"
         }
       ]
     ],
     "notification": {
-      "icon": "./assets/logo.png",
+      "icon": "./assets/logo-optimized.png",
       "color": "#10b981",
       "androidMode": "default",
       "androidCollapsedTitle": "Mechanic Setu"
