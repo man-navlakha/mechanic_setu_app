@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import api, { API_URL } from '../utils/api';
 import { useAuth } from './AuthContext';
 
@@ -151,11 +151,15 @@ export const WebSocketProvider = ({ children }) => {
             console.log(`[WS-PROVIDER] Connecting to: ${wsUrl}`);
             const origin = `${wsScheme === 'wss' ? 'https' : 'http'}://${wsHost}`;
 
-            ws.current = new WebSocket(wsUrl, null, {
-                headers: {
-                    'Origin': origin
-                }
-            });
+            if (Platform.OS === 'web') {
+                ws.current = new WebSocket(wsUrl);
+            } else {
+                ws.current = new WebSocket(wsUrl, null, {
+                    headers: {
+                        'Origin': origin
+                    }
+                });
+            }
 
             ws.current.onopen = () => {
                 console.log('%c[WS-PROVIDER] ==> Connection successful!', 'color: #008000; font-weight: bold;');

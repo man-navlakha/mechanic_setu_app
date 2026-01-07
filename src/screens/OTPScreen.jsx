@@ -16,7 +16,7 @@ const OTPScreen = () => {
 
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
-    const [timer, setTimer] = useState(60);
+    const [timer, setTimer] = useState(3);
     const [canResend, setCanResend] = useState(false);
     const otpInputRef = useRef(null);
     useEffect(() => {
@@ -85,13 +85,21 @@ const OTPScreen = () => {
     const handleResend = async () => {
         setLoading(true);
         try {
-            // Call your resend API here
-            await api.post('/users/resend-otp/', { email });
+            // Call your resend API here with both email and id
+            const payload = { email };
+            if (id) {
+                payload.id = id;
+            }
+            console.log("OTPScreen: Resending OTP with payload:", payload);
+            await api.post('/users/resend-otp/', payload);
+
             setTimer(60);
             setCanResend(false);
             Alert.alert("Success", "OTP has been resent to your email.");
         } catch (error) {
-            Alert.alert("Error", "Failed to resend OTP. Try again later.");
+            console.error("OTPScreen: Resend error", error);
+            const errorMsg = error.response?.data?.error || "Failed to resend OTP. Try again later.";
+            Alert.alert("Error", errorMsg);
         } finally {
             setLoading(false);
         }
